@@ -1,0 +1,444 @@
+-- ============================================================
+--   ARCEUS GLASS | PRISON LIFE SCRIPT — SIMPLE UI
+-- ============================================================
+
+local Players          = game:GetService("Players")
+local RunService       = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService     = game:GetService("TweenService")
+
+local LP     = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local PGui = LP:WaitForChild("PlayerGui", 10)
+
+-- ============================================================
+--   STATE
+-- ============================================================
+
+local State = {
+    Fly        = false, FlySpeed    = 60,
+    NoClip     = false,
+    Aimbot     = false, AimbotFOV   = 150, AimbotSmooth = 0.2,
+    ESP        = false,
+    Speed      = false, SpeedVal    = 50,
+    InfJump    = false,
+    GodMode    = false,
+    FullBright = false,
+}
+
+-- ============================================================
+--   UI BUILD
+-- ============================================================
+
+local old = PGui:FindFirstChild("PLScript")
+if old then old:Destroy() end
+
+local sg = Instance.new("ScreenGui")
+sg.Name           = "PLScript"
+sg.ResetOnSpawn   = false
+sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+sg.Parent         = PGui
+
+local main = Instance.new("Frame")
+main.Size             = UDim2.new(0, 220, 0, 0)
+main.Position         = UDim2.new(0, 12, 0, 60)
+main.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+main.BorderSizePixel  = 0
+main.Parent           = sg
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+
+-- Title — "Arceus" top line, "Prison Life" sub
+local titleBar = Instance.new("Frame")
+titleBar.Size             = UDim2.new(1, 0, 0, 44)
+titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
+titleBar.BorderSizePixel  = 0
+titleBar.Parent           = main
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 8)
+
+local topLine = Instance.new("TextLabel")
+topLine.Size             = UDim2.new(1, 0, 0, 22)
+topLine.Position         = UDim2.new(0, 0, 0, 2)
+topLine.Text             = "Arceus"
+topLine.Font             = Enum.Font.GothamBold
+topLine.TextSize         = 15
+topLine.TextColor3       = Color3.fromRGB(120, 160, 255)
+topLine.BackgroundTransparency = 1
+topLine.Parent           = titleBar
+
+local subLine = Instance.new("TextLabel")
+subLine.Size             = UDim2.new(1, 0, 0, 16)
+subLine.Position         = UDim2.new(0, 0, 0, 24)
+subLine.Text             = "Prison Life"
+subLine.Font             = Enum.Font.Gotham
+subLine.TextSize         = 11
+subLine.TextColor3       = Color3.fromRGB(160, 160, 190)
+subLine.BackgroundTransparency = 1
+subLine.Parent           = titleBar
+
+-- ============================================================
+--   COMPONENT BUILDERS
+-- ============================================================
+
+local yOff = 48
+
+local function AddLabel(txt)
+    local sep = Instance.new("TextLabel")
+    sep.Size             = UDim2.new(1, -12, 0, 22)
+    sep.Position         = UDim2.new(0, 6, 0, yOff)
+    sep.Text             = txt
+    sep.Font             = Enum.Font.GothamBold
+    sep.TextSize         = 10
+    sep.TextColor3       = Color3.fromRGB(100, 120, 255)
+    sep.TextXAlignment   = Enum.TextXAlignment.Left
+    sep.BackgroundTransparency = 1
+    sep.Parent           = main
+    yOff = yOff + 22
+end
+
+local function AddToggle(label, key, onToggle)
+    local row = Instance.new("Frame")
+    row.Size             = UDim2.new(1, -12, 0, 28)
+    row.Position         = UDim2.new(0, 6, 0, yOff)
+    row.BackgroundTransparency = 1
+    row.Parent           = main
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size             = UDim2.new(1, -44, 1, 0)
+    lbl.Text             = label
+    lbl.Font             = Enum.Font.Gotham
+    lbl.TextSize         = 12
+    lbl.TextColor3       = Color3.fromRGB(200, 200, 210)
+    lbl.TextXAlignment   = Enum.TextXAlignment.Left
+    lbl.BackgroundTransparency = 1
+    lbl.Parent           = row
+
+    local pill = Instance.new("Frame")
+    pill.Size             = UDim2.new(0, 36, 0, 18)
+    pill.Position         = UDim2.new(1, -38, 0.5, -9)
+    pill.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+    pill.BorderSizePixel  = 0
+    pill.Parent           = row
+    Instance.new("UICorner", pill).CornerRadius = UDim.new(1, 0)
+
+    local knob = Instance.new("Frame")
+    knob.Size             = UDim2.new(0, 14, 0, 14)
+    knob.Position         = UDim2.new(0, 2, 0.5, -7)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.BorderSizePixel  = 0
+    knob.Parent           = pill
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+
+    local btn = Instance.new("TextButton")
+    btn.Size             = UDim2.new(1, 0, 1, 0)
+    btn.Text             = ""
+    btn.BackgroundTransparency = 1
+    btn.Parent           = row
+
+    btn.MouseButton1Click:Connect(function()
+        State[key] = not State[key]
+        local on = State[key]
+        TweenService:Create(pill, TweenInfo.new(0.15), {
+            BackgroundColor3 = on and Color3.fromRGB(80, 200, 120) or Color3.fromRGB(55, 55, 65)
+        }):Play()
+        TweenService:Create(knob, TweenInfo.new(0.15), {
+            Position = on and UDim2.new(1,-16,0.5,-7) or UDim2.new(0,2,0.5,-7)
+        }):Play()
+        if onToggle then onToggle(on) end
+    end)
+
+    yOff = yOff + 30
+end
+
+local function AddButton(label, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size             = UDim2.new(1, -12, 0, 24)
+    btn.Position         = UDim2.new(0, 6, 0, yOff)
+    btn.Text             = label
+    btn.Font             = Enum.Font.GothamSemibold
+    btn.TextSize         = 12
+    btn.TextColor3       = Color3.fromRGB(220, 220, 255)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+    btn.BorderSizePixel  = 0
+    btn.Parent           = main
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.MouseButton1Click:Connect(callback)
+    yOff = yOff + 28
+end
+
+-- ============================================================
+--   FEATURES
+-- ============================================================
+
+local FlyConn, FlyBV, FlyBG
+local function StartFly()
+    local char = LP.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    FlyBV = Instance.new("BodyVelocity")
+    FlyBV.MaxForce = Vector3.new(1e6,1e6,1e6)
+    FlyBV.Velocity = Vector3.zero
+    FlyBV.Parent   = root
+    FlyBG = Instance.new("BodyGyro")
+    FlyBG.MaxTorque = Vector3.new(1e6,1e6,1e6)
+    FlyBG.P = 1e5
+    FlyBG.Parent = root
+    FlyConn = RunService.RenderStepped:Connect(function()
+        if not State.Fly then return end
+        local cf  = Camera.CFrame
+        local vel = Vector3.zero
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then vel += cf.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then vel -= cf.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then vel -= cf.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then vel += cf.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space)       then vel += Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then vel -= Vector3.new(0,1,0) end
+        FlyBV.Velocity = vel * State.FlySpeed
+        FlyBG.CFrame   = cf
+    end)
+end
+local function StopFly()
+    if FlyConn then FlyConn:Disconnect() end
+    if FlyBV   then FlyBV:Destroy() end
+    if FlyBG   then FlyBG:Destroy() end
+end
+
+local NCConn
+local function StartNC()
+    NCConn = RunService.Stepped:Connect(function()
+        if not State.NoClip then return end
+        local char = LP.Character
+        if not char then return end
+        for _, p in ipairs(char:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide = false end
+        end
+    end)
+end
+local function StopNC()
+    if NCConn then NCConn:Disconnect() end
+    local char = LP.Character
+    if char then
+        for _, p in ipairs(char:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide = true end
+        end
+    end
+end
+
+local AimConn
+local function StartAim()
+    AimConn = RunService.RenderStepped:Connect(function()
+        if not State.Aimbot then return end
+        if not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then return end
+        local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+        local best, bd = nil, State.AimbotFOV
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p == LP then continue end
+            local pc = p.Character
+            local pr = pc and pc:FindFirstChild("HumanoidRootPart")
+            local ph = pc and pc:FindFirstChildOfClass("Humanoid")
+            if not pr or not ph or ph.Health <= 0 then continue end
+            local sp, on = Camera:WorldToViewportPoint(pr.Position)
+            if not on then continue end
+            local d = (Vector2.new(sp.X, sp.Y) - center).Magnitude
+            if d < bd then bd = d; best = pr end
+        end
+        if not best then return end
+        local head = best.Parent:FindFirstChild("Head")
+        local aim  = head and head.Position or best.Position + Vector3.new(0,0.5,0)
+        Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, aim), State.AimbotSmooth)
+    end)
+end
+local function StopAim()
+    if AimConn then AimConn:Disconnect() end
+end
+
+local ESPConn, ESPBoards = nil, {}
+local function MakeBoard(p)
+    if p == LP then return end
+    local bb = Instance.new("BillboardGui")
+    bb.Size = UDim2.new(0,100,0,40)
+    bb.StudsOffset = Vector3.new(0,2.5,0)
+    bb.AlwaysOnTop = true
+    local nl = Instance.new("TextLabel")
+    nl.Size = UDim2.new(1,0,0,16); nl.Text = p.Name
+    nl.Font = Enum.Font.GothamBold; nl.TextSize = 11
+    nl.TextColor3 = Color3.fromRGB(255,100,160)
+    nl.BackgroundTransparency = 1; nl.Parent = bb
+    local hl = Instance.new("TextLabel")
+    hl.Size = UDim2.new(1,0,0,14); hl.Position = UDim2.new(0,0,0,18)
+    hl.Text = ""; hl.Font = Enum.Font.Gotham; hl.TextSize = 10
+    hl.TextColor3 = Color3.fromRGB(160,200,160)
+    hl.BackgroundTransparency = 1; hl.Parent = bb
+    ESPBoards[p.UserId] = {bb=bb, hl=hl, p=p}
+end
+local function StartESP()
+    for _, p in ipairs(Players:GetPlayers()) do MakeBoard(p) end
+    Players.PlayerAdded:Connect(MakeBoard)
+    Players.PlayerRemoving:Connect(function(p)
+        local b = ESPBoards[p.UserId]
+        if b then b.bb:Destroy(); ESPBoards[p.UserId] = nil end
+    end)
+    ESPConn = RunService.Heartbeat:Connect(function()
+        if not State.ESP then return end
+        local lc = LP.Character
+        local lr = lc and lc:FindFirstChild("HumanoidRootPart")
+        for _, obj in pairs(ESPBoards) do
+            local pc = obj.p.Character
+            local pr = pc and pc:FindFirstChild("HumanoidRootPart")
+            local ph = pc and pc:FindFirstChildOfClass("Humanoid")
+            if pr and ph then
+                obj.bb.Parent = pr; obj.bb.Enabled = true
+                local dist = lr and math.floor((pr.Position-lr.Position).Magnitude) or 0
+                obj.hl.Text = math.floor(ph.Health).." HP | "..dist.."st"
+            else
+                obj.bb.Enabled = false
+            end
+        end
+    end)
+end
+local function StopESP()
+    if ESPConn then ESPConn:Disconnect() end
+    for _, obj in pairs(ESPBoards) do obj.bb:Destroy() end
+    ESPBoards = {}
+end
+
+local SpdConn
+local function ApplySpeed(on)
+    if SpdConn then SpdConn:Disconnect() end
+    local c = LP.Character
+    local h = c and c:FindFirstChildOfClass("Humanoid")
+    if h then h.WalkSpeed = on and State.SpeedVal or 16 end
+    if on then
+        SpdConn = RunService.Heartbeat:Connect(function()
+            if not State.Speed then return end
+            local c2 = LP.Character
+            local h2 = c2 and c2:FindFirstChildOfClass("Humanoid")
+            if h2 then h2.WalkSpeed = State.SpeedVal end
+        end)
+    end
+end
+
+local IJConn
+local function StartIJ()
+    IJConn = UserInputService.JumpRequest:Connect(function()
+        if not State.InfJump then return end
+        local c = LP.Character
+        local h = c and c:FindFirstChildOfClass("Humanoid")
+        if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end)
+end
+
+local GodConn
+local function StartGod()
+    GodConn = RunService.Heartbeat:Connect(function()
+        if not State.GodMode then return end
+        local c = LP.Character
+        local h = c and c:FindFirstChildOfClass("Humanoid")
+        if h then h.Health = h.MaxHealth end
+    end)
+end
+
+local function SetFullBright(on)
+    local L = game:GetService("Lighting")
+    L.Brightness     = on and 2 or 1
+    L.ClockTime      = 14
+    L.FogEnd         = on and 1e9 or 100000
+    L.GlobalShadows  = not on
+    L.Ambient        = on and Color3.fromRGB(255,255,255) or Color3.fromRGB(127,127,127)
+    L.OutdoorAmbient = on and Color3.fromRGB(255,255,255) or Color3.fromRGB(127,127,127)
+end
+
+-- ============================================================
+--   ADD ROWS
+-- ============================================================
+
+AddLabel("— MOVEMENT —")
+AddToggle("Fly  (W/A/S/D + Space/Ctrl)", "Fly", function(on)
+    if on then StartFly() else StopFly() end
+end)
+AddToggle("NoClip", "NoClip", function(on)
+    if on then StartNC() else StopNC() end
+end)
+AddToggle("Speed  (x3)", "Speed", function(on) ApplySpeed(on) end)
+AddToggle("Infinite Jump", "InfJump", function(on)
+    if on then StartIJ() elseif IJConn then IJConn:Disconnect() end
+end)
+
+AddLabel("— COMBAT —")
+AddToggle("Aimbot  (hold RMB)", "Aimbot", function(on)
+    if on then StartAim() else StopAim() end
+end)
+AddToggle("God Mode", "GodMode", function(on)
+    if on then StartGod() elseif GodConn then GodConn:Disconnect() end
+end)
+
+AddLabel("— VISUALS —")
+AddToggle("ESP", "ESP", function(on)
+    if on then StartESP() else StopESP() end
+end)
+AddToggle("FullBright", "FullBright", function(on) SetFullBright(on) end)
+
+AddLabel("— UTILITY —")
+AddButton("TP to Nearest Guard", function()
+    local char = LP.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local best, bd = nil, math.huge
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p == LP then continue end
+        if p.Team and p.Team.Name:lower():find("guard") then
+            local pr = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+            if pr then
+                local d = (root.Position - pr.Position).Magnitude
+                if d < bd then bd = d; best = pr end
+            end
+        end
+    end
+    if best then root.CFrame = CFrame.new(best.Position + Vector3.new(0,3,0)) end
+end)
+AddButton("Bring All Players", function()
+    local char = LP.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p == LP then continue end
+        local pr = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+        if pr then pr.CFrame = root.CFrame * CFrame.new(math.random(-4,4),0,math.random(-4,4)) end
+    end
+end)
+AddButton("Reset Character", function()
+    local h = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+    if h then h.Health = 0 end
+end)
+
+-- ============================================================
+--   FINALIZE HEIGHT + KEYBIND
+-- ============================================================
+
+yOff = yOff + 8
+main.Size = UDim2.new(0, 220, 0, yOff)
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.Insert then
+        main.Visible = not main.Visible
+    end
+end)
+
+-- ============================================================
+--   RESPAWN RESTORE
+-- ============================================================
+
+LP.CharacterAdded:Connect(function()
+    task.wait(1)
+    if State.Fly       then StartFly()        end
+    if State.NoClip    then StartNC()         end
+    if State.Aimbot    then StartAim()        end
+    if State.GodMode   then StartGod()        end
+    if State.Speed     then ApplySpeed(true)  end
+    if State.InfJump   then StartIJ()         end
+    if State.ESP       then StartESP()        end
+    if State.FullBright then SetFullBright(true) end
+end)
+
+print("[Arceus | Prison Life] Loaded — Insert to toggle UI")
